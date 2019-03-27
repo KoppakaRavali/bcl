@@ -106,9 +106,6 @@ module.exports = class Block {
     // Note that we need to do a deep clone of the object.
     this.utxos = prevBlock ? JSON.parse(JSON.stringify(prevBlock.utxos)) : {};
 
-    // We track UTXOs used in this block, but can discard them
-    // after the block has been validated.
-    this.usedOutputs = {};
 
     // Add the initial coinbase reward.
     if (rewardAddr) {
@@ -200,7 +197,21 @@ module.exports = class Block {
     // 2) Add newly created UTXOs to the UTXO set.
     // 3) Calculate the miner's transaction fee, determined by the difference between the inputs and the outputs.
     //    The addTransactionFee method might help you with this part.
+    this.transactions.set(tx.id, tx);
 
+    let inputs = tx.inputs;
+    let outputs = tx.outputs;
+    let inputAmount = 0;
+    for(let i = 0; i < inputs.length; i++) {
+        inputAmount += this.utxos[inputs[i].txID][inputs[i].outputIndex].amount;
+        delete this.utxos[inputs[i].txID];
+    }
+    let outputAmount = 0;
+    for(let i = 0;i < outputs.length; i++) {
+        outputAmount += outputs[i].amount;
+    }
+    this.utxos[tx.id] = outputs;
+    this.addTransactionFee(inputAmount - outputAmount);
   }
 
   /**

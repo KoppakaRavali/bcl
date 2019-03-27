@@ -85,7 +85,7 @@ module.exports = class Miner extends Client {
    */
   findProof(oneAndDone=false) {
     let pausePoint = this.currentBlock.proof + NUM_ROUNDS_MINING;
-    while (this.currentBlock.proof < pausePoint) {
+    while ((this.currentBlock.proof < pausePoint) && (!this.currentBlock.verifyProof())) {
 
       //
       // **YOUR CODE HERE**
@@ -97,8 +97,16 @@ module.exports = class Miner extends Client {
       //
       // After that, create a new block and start searching for a proof.
       // The 'startNewSearch' method might be useful for this last step.
-
       this.currentBlock.proof++;
+    }
+    if(this.currentBlock.verifyProof()) {
+        let coinbase = this.currentBlock.coinbaseTX
+        for(let i = 0 ; i < coinbase.outputs.length ; i++) {
+            this.wallet.addUTXO(coinbase.outputs[i], this.rewardAddress, i);
+        }
+        this.announceProof();
+        this.log("Proof found!!")
+        this.startNewSearch();
     }
     // If we are testing, don't continue the search.
     if (!oneAndDone) {

@@ -64,7 +64,7 @@ module.exports = class Transaction {
     if (utils.calcAddress(pubKey) !== address) {
       throw new Error(`Public key does not match its hash for tx ${this.id}, output ${outputIndex}.`);
     } else if (!utils.verifySignature(pubKey, output, sig)) {
-      throw new Error(`Invalid signature for ${this.id}, outpout ${outputIndex}.`);
+      throw new Error(`Invalid signature for ${this.id}, output ${outputIndex}.`);
     } else {
       return amount;
     }
@@ -105,6 +105,32 @@ module.exports = class Transaction {
     // 4) From here, you can gather the amount of **input** available to
     //      this transaction.
 
+    if(this.inputs === []) {
+        return true;
+    }
+    let inputSum = 0;
+    let utxo;
+    for(let i = 0; i < this.inputs.length; i++) {
+        utxo = utxos[this.inputs[i].txID];
+        if(utxo === undefined) {
+            return false;
+        }
+        if(utils.calcAddress(this.inputs[i].pubKey) !== utxo[this.inputs[i].outputIndex].address) {
+            return false;
+        }
+        if(!utils.verifySignature(this.inputs[i].pubKey, utxo[this.inputs[i].outputIndex], this.inputs[i].sig)) {
+            return false;
+        }
+        inputSum += utxo[this.inputs[i].outputIndex].amount;
+    }
+    let outputSum = 0;
+    for(let i = 0; i < this.outputs.length; i++) {
+        outputSum += this.outputs[i].amount;
+    }
+    if(inputSum < outputSum) {
+        return false;
+    }
+    return true;
   }
 
   /**
